@@ -154,8 +154,8 @@ def run_pipeline(year: int, month: int, day: int):
         file_name = f"data_{monday.strftime('%Y_%m_%d')}.csv"
         if prices is not None and demands is not None:
             dataset = {
-                "price": prices,
-                "demand": demands
+                "price (MWh)": prices,
+                "demand (MW)": demands
             }
             datasets_to_csv(dataset, file_name)
         else:
