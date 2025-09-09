@@ -133,8 +133,7 @@ def datasets_to_csv(datasets: dict[str, list[list]], csv_filename: str):
 
 def run_pipeline(year: int, month: int, day: int):
     """
-    Generate a CSV file containing hourly electricity prices and demand
-    for a one-week period in Germany.
+    Generate a CSV file containing hourly electricity prices and demand.
     """
     timestamp = get_utc_timestamp_from_date(year=year, month=month, day=day)
     valid_timestamp = find_latest_smard_daily_dataset(timestamp)
