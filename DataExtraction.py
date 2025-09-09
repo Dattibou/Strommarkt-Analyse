@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 import requests
 import pandas as pd
@@ -36,6 +36,35 @@ def find_latest_smard_daily_dataset(start_timestamp: int, max_days_back: int = 1
 
     print(f"No daily dataset found in the last {max_days_back} days.")
     return None
+
+
+def generate_weekly_timestamps(start_timestamp: int) -> list[int]:
+    """
+    Generate weekly timestamps (7-day intervals) from a given start timestamp
+    up to the current week.
+
+    Args:
+        start_timestamp (int): Valid SMARD timestamp in milliseconds.
+
+    Returns:
+        list[int]: List of weekly timestamps (ms).
+    """
+    results = []
+    one_week_ms = 7 * 24 * 60 * 60 * 1000
+
+    # Normalize "now" to this week's Monday 00:00 UTC
+    now = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    # Floor to Monday of this week
+    weekday = now.weekday()  # Monday = 0
+    monday_this_week = now.replace(day=now.day - weekday)
+    now_ts = int(monday_this_week.timestamp() * 1000)
+
+    ts = start_timestamp
+    while ts <= now_ts:
+        results.append(ts)
+        ts += one_week_ms
+
+    return results
 
 
 def get_smard_timeseries(filter: int, region: str, resolution: str, timestamp: int):
@@ -102,38 +131,39 @@ def datasets_to_csv(datasets: dict[str, list[list]], csv_filename: str):
     print(f"CSV saved to {csv_filename}")
 
 
+def run_pipeline(year: int, month: int, day: int):
+    """
+    Generate a CSV file containing hourly electricity prices and demand
+    for a one-week period in Germany.
+    """
+    timestamp = get_utc_timestamp_from_date(year=year, month=month, day=day)
+    valid_timestamp = find_latest_smard_daily_dataset(timestamp)
+
+
+    if not valid_timestamp:
+        print("No valid dataset found.")
+        return
+
+    # Generate all weekly timestamps until this week
+    valid_timestamp_list = generate_weekly_timestamps(valid_timestamp)
+    # Loop through all weekly timestamps
+    for ts in valid_timestamp_list:
+        monday = datetime.fromtimestamp(ts / 1000.0)
+        prices = get_smard_timeseries(filter=4169, region="DE", resolution="hour", timestamp=ts)
+        demands = get_smard_timeseries(filter=410, region="DE", resolution="hour", timestamp=ts)
+
+        file_name = f"data_{monday.strftime('%Y_%m_%d')}.csv"
+        if prices is not None and demands is not None:
+            dataset = {
+                "price": prices,
+                "demand": demands
+            }
+            datasets_to_csv(dataset, file_name)
+        else:
+            print(f"Oops, something went wrong for {file_name}")
 
 
 
 
 if __name__ == "__main__":
-    """
-    Generate a CSV file containing hourly electricity prices and demand 
-    for a one-week period in Germany.
-    
-    Steps:
-    1. Compute the UTC timestamp for the Monday of a given date (Berlin local time).
-    2. Find the latest available SMARD dataset starting from that date.
-    3. Fetch hourly price and demand time series for the 7-day period.
-    4. Combine both datasets into a single CSV file, aligning rows by timestamp.
-    
-    The resulting CSV has the following columns:
-    - timestamp (Unix epoch in ms, UTC)
-    - price (EUR/MWh)
-    - demand (MW)
-    """
-
-    timestamp1 = get_utc_timestamp_from_date(year=2020, month=9, day=5)
-    valid_timestamp = find_latest_smard_daily_dataset(timestamp1)
-    monday = datetime.fromtimestamp(valid_timestamp/1000.0)
-    prices = get_smard_timeseries(filter=4169, region= "DE", resolution= "hour", timestamp=valid_timestamp)
-    demands = get_smard_timeseries(filter=410, region="DE", resolution="hour", timestamp=valid_timestamp)
-    file_name = f"data_{monday.strftime('%Y_%m_%d')}.csv"
-    if prices is not None and demands is not None:
-        dataset = {
-            "price": prices,
-            "demand": demands
-        }
-        datasets_to_csv(dataset, file_name)
-    else:
-        print("Oops something went wrong")
+    run_pipeline(2025, 9, 2)
