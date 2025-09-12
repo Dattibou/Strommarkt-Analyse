@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 import requests
 import pandas as pd
+import os
 
 def get_utc_timestamp_from_date(year: int, month: int, day: int) -> int:
 
@@ -151,7 +152,9 @@ def run_pipeline(year: int, month: int, day: int):
         prices = get_smard_timeseries(filter=4169, region="DE", resolution="hour", timestamp=ts)
         demands = get_smard_timeseries(filter=410, region="DE", resolution="hour", timestamp=ts)
 
-        file_name = f"data_{monday.strftime('%Y_%m_%d')}.csv"
+        folder_name = "smard_data"
+        os.makedirs(folder_name, exist_ok=True)
+        file_name = os.path.join(folder_name,f"data_{monday.strftime('%Y_%m_%d')}.csv")
         if prices is not None and demands is not None:
             dataset = {
                 "price (MWh)": prices,
