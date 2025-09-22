@@ -115,17 +115,16 @@ def datasets_to_csv(datasets: dict[str, list[list]], csv_filename: str):
 
     # Convert to DataFrame
     df = pd.DataFrame.from_dict(combined_dict, orient='index')
-    df.index.name = 'timestamp'
-    df.sort_index(inplace=True)
 
-    # Add human-readable datetime column (Berlin time)
+    # Convert index from milliseconds timestamp to Berlin datetime
     berlin_tz = ZoneInfo("Europe/Berlin")
-    df.insert(
-        0,
-        "datetime_berlin",
-        [datetime.fromtimestamp(ts / 1000, tz=berlin_tz).strftime("%Y-%m-%d %H:%M:%S")
-         for ts in df.index]
-    )
+    df.index = [datetime.fromtimestamp(ts / 1000, tz=berlin_tz).strftime("%Y-%m-%d %H:%M:%S") for ts in df.index]
+
+    # Name the index
+    df.index.name = 'time_berlin'
+
+    # Sort by time
+    df.sort_index(inplace=True)
 
     # Export to CSV
     df.to_csv(csv_filename, float_format='%.2f')
