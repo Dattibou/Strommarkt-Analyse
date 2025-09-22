@@ -201,4 +201,4 @@ def run_pipeline(year: int, month: int, day: int):
 
 
 if __name__ == "__main__":
-    run_pipeline(2025, 9, 2)
+    run_pipeline(2020, 1, 1)

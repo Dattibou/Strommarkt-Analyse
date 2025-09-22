@@ -2,6 +2,7 @@ import requests
 import pandas as pd
 import numpy as np
 import os
+import time
 
 
 # --- Step 2: Create grid points (2° steps) ---
@@ -30,14 +31,25 @@ def fetch_point_data(lat, lon, start_date, end_date):
     return df.set_index("time")
 
 # --- Step 4: Loop over grid points & aggregate ---
-def fetch_germany_average(grid_points, start_date, end_date):
+def fetch_germany_average(grid_points, start_date, end_date, retries: int = 3, wait: int = 10):
     dfs = []
     for lat, lon in grid_points:
-        try:
-            df = fetch_point_data(lat, lon, start_date, end_date)
-            dfs.append(df)
-        except Exception as e:
-            print(f"Failed at {lat},{lon}: {e}")
+        for attempt in range(retries):
+            try:
+                df = fetch_point_data(lat, lon, start_date, end_date)
+                dfs.append(df)
+                print(f"Successfully fetched data for: {lat}, {lon}")
+                break
+            except Exception as e:
+                if attempt < retries - 1:
+                    print(f"Retry {attempt + 1}/{retries} for {lat},{lon} after error: {e}")
+                    time.sleep(wait)
+                else:
+                    print(f"Failed at {lat},{lon} after {retries} retries: {e}")
+
+    if not dfs:
+        raise RuntimeError("No dataframes could be fetched for any grid point.")
+
     # Combine all dataframes
     combined = pd.concat(dfs, axis=1, keys=[f"{lat},{lon}" for lat, lon in grid_points])
     # Average across grid points for each variable
@@ -64,7 +76,7 @@ if __name__ == "__main__":
     # --- Step 1: Define Germany bounding box & dates---
     lat_ger_min, lat_ger_max = 47.2, 55.1
     long_ger_min, lon_ger_max = 5.9, 15.0
-    start = "2025-09-01"
+    start = "2025-01-01"
     end = "2025-09-22"
 
     run(lat_ger_min,lat_ger_max, long_ger_min, lon_ger_max, start, end)
