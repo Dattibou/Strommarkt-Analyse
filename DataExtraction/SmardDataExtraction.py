@@ -3,6 +3,7 @@ from zoneinfo import ZoneInfo
 import requests
 import pandas as pd
 import os
+import glob
 
 def get_utc_timestamp_from_date(year: int, month: int, day: int) -> int:
 
@@ -130,6 +131,39 @@ def datasets_to_csv(datasets: dict[str, list[list]], csv_filename: str):
     df.to_csv(csv_filename, float_format='%.2f')
     print(f"CSV saved to {csv_filename}")
 
+def combine_csvs():
+    """
+    Combine all CSV files in a given folder into a single DataFrame.
+
+    Assumes each CSV has the same structure:
+        time_berlin, price, demand
+    """
+    folder = "smard_data"
+    os.makedirs(folder, exist_ok=True)
+
+    # Find all CSV files
+    csv_files = glob.glob(os.path.join(folder, "*.csv"))
+    if not csv_files:
+        raise FileNotFoundError(f"No CSV files found in {folder}")
+
+    # Read and stack them
+    df = pd.concat(
+        (pd.read_csv(f, parse_dates=["time_berlin"]) for f in csv_files),
+        ignore_index=True
+    )
+
+    # Set datetime index, sort, and drop duplicates
+    df = (
+        df.set_index("time_berlin")
+        .sort_index()
+        .drop_duplicates()
+    )
+
+    # Save to file
+    output_file = os.path.join(folder, "combined_smard_data.csv")
+    df.to_csv(output_file)
+    print(f"Combined CSV saved to {output_file}")
+
 
 def run_pipeline(year: int, month: int, day: int):
     """
@@ -163,7 +197,7 @@ def run_pipeline(year: int, month: int, day: int):
         else:
             print(f"Oops, something went wrong for {file_name}")
 
-
+    combine_csvs()
 
 
 if __name__ == "__main__":
