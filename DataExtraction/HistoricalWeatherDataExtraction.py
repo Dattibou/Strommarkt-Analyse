@@ -42,9 +42,9 @@ def fetch_germany_average(grid_points, start_date, end_date):
     combined = pd.concat(dfs, axis=1, keys=[f"{lat},{lon}" for lat, lon in grid_points])
     # Average across grid points for each variable
     avg_df = pd.DataFrame({
-        "temperature_2m": combined.xs("temperature_2m", axis=1, level=1).mean(axis=1), # returns series with datetime as index
-        "wind_speed_100m": combined.xs("wind_speed_100m", axis=1, level=1).mean(axis=1),
-        "shortwave_radiation": combined.xs("shortwave_radiation", axis=1, level=1).mean(axis=1),
+        "temperature_2m_°C": combined.xs("temperature_2m", axis=1, level=1).mean(axis=1), # returns series with datetime as index
+        "wind_speed_100m_km/h": combined.xs("wind_speed_100m", axis=1, level=1).mean(axis=1),
+        "shortwave_radiation_W/m²": combined.xs("shortwave_radiation", axis=1, level=1).mean(axis=1),
     })
     avg_df.index.name = 'time_berlin'
     return avg_df
@@ -57,17 +57,17 @@ def run(lat_min, lat_max, lon_min, lon_max, start_date, end_date):
     os.makedirs(folder_name, exist_ok=True)
     file_name = os.path.join(folder_name, "weather_avg_data.csv")
     df_germany_average.to_csv(file_name)
+    print(f"CSV saved to {file_name}")
 
 
 if __name__ == "__main__":
     # --- Step 1: Define Germany bounding box & dates---
     lat_ger_min, lat_ger_max = 47.2, 55.1
     long_ger_min, lon_ger_max = 5.9, 15.0
-    start = "2025-09-10"
-    end = "2025-09-21"
+    start = "2025-09-01"
+    end = "2025-09-22"
 
     run(lat_ger_min,lat_ger_max, long_ger_min, lon_ger_max, start, end)
-
 
 
 
