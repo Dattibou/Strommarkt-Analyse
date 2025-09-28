@@ -51,22 +51,21 @@ def generate_weekly_timestamps(start_timestamp: int) -> list[int]:
     Returns:
         list[int]: List of weekly timestamps (ms).
     """
-    results = []
-    one_week_ms = 7 * 24 * 60 * 60 * 1000
+    berlin = ZoneInfo("Europe/Berlin")
 
-    # Normalize "now" to this week's Monday 00:00 UTC
-    now = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-    # Floor to Monday of this week
-    weekday = now.weekday()  # Monday = 0
-    monday_this_week = now.replace(day=now.day - weekday)
-    now_ts = int(monday_this_week.timestamp() * 1000)
+    # Convert the start timestamp back into Berlin time
+    dt_start = datetime.fromtimestamp(start_timestamp / 1000, tz=berlin)
 
-    ts = start_timestamp
-    while ts <= now_ts:
-        results.append(ts)
-        ts += one_week_ms
+    # Normalize to Monday midnight Berlin time
+    dt_start = dt_start - pd.Timedelta(days=dt_start.weekday())
 
-    return results
+    # Generate all Mondays until this week
+    now = datetime.now(berlin).replace(hour=0, minute=0, second=0, microsecond=0)
+    now = now - pd.Timedelta(days=now.weekday())
+
+    weeks = pd.date_range(dt_start, now, freq="W-MON", tz=berlin) #tz=berlin to adjust for DST shift
+
+    return [int(dt.timestamp() * 1000) for dt in weeks]
 
 
 def get_smard_timeseries(filter: int, region: str, resolution: str, timestamp: int):

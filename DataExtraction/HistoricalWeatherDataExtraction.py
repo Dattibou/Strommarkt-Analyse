@@ -77,7 +77,7 @@ if __name__ == "__main__":
     lat_ger_min, lat_ger_max = 47.2, 55.1
     long_ger_min, lon_ger_max = 5.9, 15.0
     start = "2025-01-01"
-    end = "2025-09-22"
+    end = "2025-09-28"
 
     run(lat_ger_min,lat_ger_max, long_ger_min, lon_ger_max, start, end)
 
